@@ -1,5 +1,44 @@
+# ===== AUTO UPDATE =====
+
+$localVersion = "1.0.0"
+$versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
+$scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
+
+try {
+    $onlineVersion = Invoke-RestMethod $versionUrl -UseBasicParsing
+
+    if ($onlineVersion -ne $localVersion) {
+        $res = [System.Windows.Forms.MessageBox]::Show(
+            "Nouvelle version dispo ($onlineVersion). Mettre a jour ?",
+            "Mise a jour",
+            "YesNo",
+            "Information"
+        )
+
+        if ($res -eq "Yes") {
+            Invoke-WebRequest $scriptUrl -OutFile "$PSScriptRoot\MonkeyDLauncher.ps1"
+            [System.Windows.Forms.MessageBox]::Show(
+                "Mise a jour terminee. Relance le launcher.",
+                "OK",
+                "OK",
+                "Information"
+            )
+            exit
+        }
+    }
+}
+catch {
+    # silence = pas bloquant si internet HS
+}
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+
+# ===== AUTO UPDATE =====
+$localVersion = "1.0.0"
+$versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
+$scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
+...
+
 
 # =========================
 # Monkey D. Launcher
