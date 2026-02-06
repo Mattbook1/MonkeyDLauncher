@@ -210,7 +210,9 @@ foreach ($f in $folders) {
 }
 
 $form.Add_Shown({
-  $status.Location = New-Object System.Drawing.Point(20, $form.ClientSize.Height - 30)
+    $h = [int]$form.ClientSize.Height
+    $y = $h - 30
+    $status.Location = New-Object System.Drawing.Point(20, [int]$y)
 })
 
 [void]$form.ShowDialog()
