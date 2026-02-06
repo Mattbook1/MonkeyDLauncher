@@ -1,3 +1,5 @@
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
 # ===== AUTO UPDATE =====
 
 $localVersion = "1.0.0"
@@ -30,8 +32,7 @@ try {
 catch {
     # silence = pas bloquant si internet HS
 }
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
+
 
 # =========================
 # Monkey D. Launcher
