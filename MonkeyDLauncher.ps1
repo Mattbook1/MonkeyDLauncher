@@ -18,14 +18,23 @@ try {
         )
 
         if ($res -eq "Yes") {
-            Invoke-WebRequest $scriptUrl -OutFile "$PSScriptRoot\MonkeyDLauncher.ps1"
-            [System.Windows.Forms.MessageBox]::Show(
-                "Mise a jour terminee. Relance le launcher.",
-                "OK",
-                "OK",
-                "Information"
-            )
-            exit
+
+    # Update MonkeyDLauncher.ps1
+    Invoke-WebRequest $scriptUrl -OutFile "$PSScriptRoot\MonkeyDLauncher.ps1"
+
+    # Update StartLauncher.cmd
+    $startUrl = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/StartLauncher.cmd"
+    Invoke-WebRequest $startUrl -OutFile "$PSScriptRoot\StartLauncher.cmd"
+
+    [System.Windows.Forms.MessageBox]::Show(
+        "Mise a jour terminee. Relance le launcher.",
+        "OK",
+        "OK",
+        "Information"
+    )
+    exit
+}
+
         }
     }
 }
