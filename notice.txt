@@ -1,0 +1,78 @@
+==============================
+ MONKEY D. LAUNCHER – NOTICE
+==============================
+
+⚠️ IMPORTANT : LIRE AVANT DE LANCER ⚠️
+
+1️⃣ AVANT D’EXTRAIRE
+- Faites clic droit sur l’archive (ZIP / RAR)
+- Propriétés
+- En bas, si vous voyez “Bloqué” → cochez “Débloquer”
+- Cliquez sur Appliquer puis OK
+
+👉 Ça évite les bugs Windows / SmartScreen.
+
+------------------------------------------------
+
+2️⃣ EXTRACTION
+- Extraire TOUT le contenu de l’archive
+- Dans un dossier de votre choix (ex : Bureau ou Disque D:)
+
+Exemple :
+MonkeyDLauncher/
+│─ MonkeyDLauncher.ps1
+│─ MonkeyDLauncher_BG.png
+│─ MonkeyD_Launcher.ico
+│─ NOTICE.txt
+│─ (vos dossiers de jeux ici)
+
+------------------------------------------------
+
+3️⃣ PREMIER LANCEMENT
+- Double-cliquez sur **StartLauncher.bat** ou **MonkeyDLauncher.ps1**
+- Acceptez si Windows demande une autorisation
+- Le launcher peut se mettre à jour automatiquement
+- S’il se met à jour : laissez faire et relancez-le
+
+------------------------------------------------
+
+4️⃣ AJOUTER VOS JEUX (IMPORTANT)
+- FERMEZ le launcher
+- Mettez vos **dossiers de jeux crackés** DANS LE MÊME DOSSIER que le launcher
+
+Exemple :
+MonkeyDLauncher/
+│─ Vintage Story/
+│─ Valheim/
+│─ GTA/
+│─ MonkeyDLauncher.ps1
+
+⚠️ 1 dossier = 1 jeu  
+⚠️ Ne mettez PAS les jeux dans des sous-dossiers
+
+------------------------------------------------
+
+5️⃣ RELANCER LE LAUNCHER
+- Relancez le launcher
+- Les jeux sont détectés automatiquement
+- Utilisez les flèches ou la souris pour naviguer
+- Cliquez sur le jeu pour lancer
+
+------------------------------------------------
+
+6️⃣ RACCOURCI BUREAU (CONSEILLÉ)
+- Clic droit sur StartLauncher.bat ou MonkeyDLauncher.ps1
+- Envoyer vers → Bureau (créer un raccourci)
+- Lancez toujours le launcher depuis ce raccourci
+
+------------------------------------------------
+
+❓ EN CAS DE PROBLÈME
+- Vérifiez que le jeu se lance seul (sans le launcher)
+- Vérifiez que l’exe principal est bien dans le dossier du jeu
+- Lancez le launcher en administrateur si besoin
+
+------------------------------------------------
+
+Monkey D. Launcher
+by Mattbook 🏴‍☠️
