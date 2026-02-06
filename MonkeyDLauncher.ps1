@@ -1,36 +1,60 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# ===== AUTO UPDATE =====
+# ===== AUTO UPDATE (NO LOOP) =====
 $localVersion = "1.1"
 $versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
 $scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
 
 try {
-    $onlineVersion = (Invoke-RestMethod $versionUrl -UseBasicParsing).ToString().Trim()
-    $localVersion  = $localVersion.ToString().Trim()
+    $currentScript = $MyInvocation.MyCommand.Path
+    $flagPath = Join-Path $PSScriptRoot "update_once.flag"
 
-    if ($onlineVersion -ne $localVersion) {
-        $res = [System.Windows.Forms.MessageBox]::Show(
-            "Nouvelle version dispo ($onlineVersion). Mettre a jour ?",
-            "Mise a jour",
-            [System.Windows.Forms.MessageBoxButtons]::YesNo,
-            [System.Windows.Forms.MessageBoxIcon]::Information
-        )
+    # si on vient JUSTE de relancer après update, on skip 1 fois
+    if (Test-Path $flagPath) {
+        Remove-Item $flagPath -Force -ErrorAction SilentlyContinue
+    }
+    else {
+        # cache-buster pour éviter github cache
+        $cb = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 
-        if ($res -eq [System.Windows.Forms.DialogResult]::Yes) {
-            Invoke-WebRequest $scriptUrl -OutFile "$PSScriptRoot\MonkeyDLauncher.ps1" -UseBasicParsing
-            [System.Windows.Forms.MessageBox]::Show(
-                "Mise a jour terminee. Relance le launcher.",
-                "OK",
-                [System.Windows.Forms.MessageBoxButtons]::OK,
+        $onlineVersionRaw = (Invoke-RestMethod "$versionUrl?cb=$cb" -UseBasicParsing).ToString().Trim()
+        $localVersionRaw  = $localVersion.ToString().Trim()
+
+        # comparaison version safe (1.10 > 1.2)
+        $onlineV = [version]$onlineVersionRaw
+        $localV  = [version]$localVersionRaw
+
+        if ($onlineV -gt $localV) {
+            $res = [System.Windows.Forms.MessageBox]::Show(
+                "Nouvelle version dispo ($onlineVersionRaw). Mettre a jour ?",
+                "Mise a jour",
+                [System.Windows.Forms.MessageBoxButtons]::YesNo,
                 [System.Windows.Forms.MessageBoxIcon]::Information
-            ) | Out-Null
-            exit
+            )
+
+            if ($res -eq [System.Windows.Forms.DialogResult]::Yes) {
+                Invoke-WebRequest "$scriptUrl?cb=$cb" -OutFile $currentScript -UseBasicParsing
+
+                [System.Windows.Forms.MessageBox]::Show(
+                    "Mise a jour terminee. Relance automatique...",
+                    "OK",
+                    [System.Windows.Forms.MessageBoxButtons]::OK,
+                    [System.Windows.Forms.MessageBoxIcon]::Information
+                ) | Out-Null
+
+                # on pose un flag pour éviter de re-check direct (cache, etc.)
+                New-Item -Path $flagPath -ItemType File -Force | Out-Null
+
+                Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$currentScript`""
+                exit
+            }
         }
     }
 }
-catch { }
+catch {
+    # silence
+}
 # ===== AUTO UPDATE =====
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
