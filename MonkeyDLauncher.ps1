@@ -4,7 +4,7 @@ Add-Type -AssemblyName System.Drawing
 
 $localVersion = "1.0.1"
 $versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
-$scriptUrl    = "https://raw.githubusercontent.com/TONPSEUDO/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
+$scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
 
 try {
     $onlineVersion = Invoke-RestMethod $versionUrl -UseBasicParsing
