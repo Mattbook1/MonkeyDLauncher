@@ -2,7 +2,7 @@
 
 $localVersion = "1.0.0"
 $versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
-$scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
+$scriptUrl    = "https://raw.githubusercontent.com/TONPSEUDO/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
 
 try {
     $onlineVersion = Invoke-RestMethod $versionUrl -UseBasicParsing
@@ -32,13 +32,6 @@ catch {
 }
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-
-# ===== AUTO UPDATE =====
-$localVersion = "1.0.0"
-$versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
-$scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
-...
-
 
 # =========================
 # Monkey D. Launcher
