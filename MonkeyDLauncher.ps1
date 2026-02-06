@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 # ===== AUTO UPDATE =====
 
-$localVersion = "1.0.0"
+$localVersion = "1.0.1"
 $versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
 $scriptUrl    = "https://raw.githubusercontent.com/TONPSEUDO/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
 
