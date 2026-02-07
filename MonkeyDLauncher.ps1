@@ -1,8 +1,89 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+# ===== Anti-flicker hardcore (Form compositée) =====
+Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @"
+using System;
+using System.Windows.Forms;
+
+public class SmoothForm : Form
+{
+    protected override CreateParams CreateParams
+    {
+        get {
+            CreateParams cp = base.CreateParams;
+            cp.ExStyle |= 0x02000000; // WS_EX_COMPOSITED (anti clignotement)
+            return cp;
+        }
+    }
+}
+"@
+
+# --- Hide console window (anti flash) ---
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+public class Win32 {
+  [DllImport("kernel32.dll")] public static extern IntPtr GetConsoleWindow();
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+}
+"@
+$h = [Win32]::GetConsoleWindow()
+if ($h -ne [IntPtr]::Zero) { [Win32]::ShowWindow($h, 0) | Out-Null }  # 0 = hide
+
+# ===== SPLASH SCREEN (image de chargement) =====
+function Show-Splash {
+    param(
+        [string]$ImagePath,
+        [int]$DurationMs = 1500
+    )
+
+    if (!(Test-Path $ImagePath)) { return }
+
+    $splash = New-Object System.Windows.Forms.Form
+    $splash.FormBorderStyle = "None"
+    $splash.StartPosition = "CenterScreen"
+    $splash.ShowInTaskbar = $false
+    $splash.TopMost = $true
+    $splash.BackColor = [System.Drawing.Color]::Black
+
+    $img = [System.Drawing.Image]::FromFile($ImagePath)
+
+    $maxW = 700
+    $maxH = 400
+    $ratio = [Math]::Min($maxW / $img.Width, $maxH / $img.Height)
+    if ($ratio -gt 1) { $ratio = 1 }
+
+    $w = [int]($img.Width * $ratio)
+    $hh = [int]($img.Height * $ratio)
+
+    $splash.ClientSize = New-Object System.Drawing.Size($w, $hh)
+
+    $pb = New-Object System.Windows.Forms.PictureBox
+    $pb.Dock = "Fill"
+    $pb.Image = $img
+    $pb.SizeMode = "Zoom"
+    $splash.Controls.Add($pb)
+
+    $t = New-Object System.Windows.Forms.Timer
+    $t.Interval = $DurationMs
+    $t.Add_Tick({
+        $t.Stop()
+        $splash.Close()
+    })
+
+    $splash.Add_Shown({ $t.Start() })
+    $null = $splash.ShowDialog()
+
+    try { $pb.Image.Dispose() } catch {}
+    try { $img.Dispose() } catch {}
+    try { $t.Dispose() } catch {}
+    try { $splash.Dispose() } catch {}
+}
+# ===== FIN SPLASH =====
+
 # ===== AUTO UPDATE (NO LOOP) =====
-$localVersion = "1.1.1"
+$localVersion = "1.1.2"
 $versionUrl   = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/version.txt"
 $scriptUrl    = "https://raw.githubusercontent.com/Mattbook1/MonkeyDLauncher/main/MonkeyDLauncher.ps1"
 
@@ -10,18 +91,15 @@ try {
     $currentScript = $MyInvocation.MyCommand.Path
     $flagPath = Join-Path $PSScriptRoot "update_once.flag"
 
-    # si on vient JUSTE de relancer après update, on skip 1 fois
     if (Test-Path $flagPath) {
         Remove-Item $flagPath -Force -ErrorAction SilentlyContinue
     }
     else {
-        # cache-buster pour éviter github cache
         $cb = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 
         $onlineVersionRaw = (Invoke-RestMethod "$versionUrl?cb=$cb" -UseBasicParsing).ToString().Trim()
         $localVersionRaw  = $localVersion.ToString().Trim()
 
-        # comparaison version safe (1.10 > 1.2)
         $onlineV = [version]$onlineVersionRaw
         $localV  = [version]$localVersionRaw
 
@@ -43,7 +121,6 @@ try {
                     [System.Windows.Forms.MessageBoxIcon]::Information
                 ) | Out-Null
 
-                # on pose un flag pour éviter de re-check direct (cache, etc.)
                 New-Item -Path $flagPath -ItemType File -Force | Out-Null
 
                 Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -File `"$currentScript`""
@@ -52,12 +129,15 @@ try {
         }
     }
 }
-catch {
-    # silence
-}
+catch { }
 # ===== AUTO UPDATE =====
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Splash
+$splashPath = Join-Path $root "Splash.png"
+Show-Splash -ImagePath $splashPath -DurationMs 1500
+
 $ignoredFolders = @("Server", "User Music")
 
 function Get-GamesFolders {
@@ -128,13 +208,11 @@ function Load-ImageNoLock($path) {
 }
 
 function Get-GameImage($gameFolderFull) {
-    # 1) image custom si dispo
     $png = Join-Path $gameFolderFull "icon.png"
     $ico = Join-Path $gameFolderFull "icon.ico"
     if (Test-Path $png) { return Load-ImageNoLock $png }
     if (Test-Path $ico) { try { return (New-Object System.Drawing.Icon($ico)).ToBitmap() } catch { } }
 
-    # 2) icone depuis exe
     try {
         $exe = $null
         $folderName = Split-Path $gameFolderFull -Leaf
@@ -201,7 +279,8 @@ function Launch-GameByName($gameName) {
 }
 
 # --------- UI ---------
-$form = New-Object System.Windows.Forms.Form
+$form = New-Object SmoothForm
+$form.Opacity = 0
 $form.Text = "Monkey D. Launcher"
 $form.ClientSize = New-Object System.Drawing.Size(960, 540)
 $form.StartPosition = "CenterScreen"
@@ -209,7 +288,6 @@ $form.FormBorderStyle = "FixedSingle"
 $form.MaximizeBox = $false
 $form.BackColor = [System.Drawing.Color]::Black
 
-# Double buffering (anti flicker)
 try { $form.GetType().GetProperty("DoubleBuffered","NonPublic,Instance").SetValue($form,$true,$null) } catch { }
 
 $launcherIco = Join-Path $root "MonkeyD_Launcher.ico"
@@ -217,7 +295,7 @@ if (Test-Path $launcherIco) { $form.Icon = [System.Drawing.Icon]::ExtractAssocia
 
 $bg = Join-Path $root "MonkeyDLauncher_BG.png"
 if (Test-Path $bg) {
-    $form.BackgroundImage = [System.Drawing.Image]::FromFile($bg)
+    $form.BackgroundImage = Load-ImageNoLock $bg
     $form.BackgroundImageLayout = "Stretch"
 }
 
@@ -231,7 +309,7 @@ $form.Controls.Add($status)
 # --------- CAROUSEL (1 jeu affiché) ---------
 $folders = @(Get-GamesFolders | Sort-Object Name)
 
-$tileSize = 170
+$tileSize = 140
 $cardH    = $tileSize
 $overlayAlpha = 25
 
@@ -245,7 +323,6 @@ $card.BackColor = [System.Drawing.Color]::Transparent
 $card.Cursor = [System.Windows.Forms.Cursors]::Hand
 $form.Controls.Add($card)
 
-# Double buffering panel
 try { $card.GetType().GetProperty("DoubleBuffered","NonPublic,Instance").SetValue($card,$true,$null) } catch { }
 
 $card.Add_Paint({
@@ -266,7 +343,7 @@ $pic = New-Object System.Windows.Forms.PictureBox
 $pic.Size = New-Object System.Drawing.Size($tileSize, $tileSize)
 $pic.Location = New-Object System.Drawing.Point(0, 0)
 $pic.SizeMode = "Zoom"
-$pic.Padding = New-Object System.Windows.Forms.Padding(22)
+$pic.Padding = New-Object System.Windows.Forms.Padding(65)
 $pic.BackColor = [System.Drawing.Color]::Transparent
 $pic.Cursor = [System.Windows.Forms.Cursors]::Hand
 $card.Controls.Add($pic)
@@ -305,6 +382,20 @@ $btnR.Font = New-Object System.Drawing.Font("Segoe UI", 16, [System.Drawing.Font
 $btnR.Cursor = [System.Windows.Forms.Cursors]::Hand
 $form.Controls.Add($btnR)
 
+# ===== Bouton dossier (📁) =====
+$btnFolder = New-Object System.Windows.Forms.Button
+$btnFolder.Text = "Dossier"
+$btnFolder.Size = New-Object System.Drawing.Size(90, 55)
+$btnFolder.FlatStyle = "Flat"
+$btnFolder.FlatAppearance.BorderSize = 1
+$btnFolder.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(200,180,140)
+$btnFolder.BackColor = [System.Drawing.Color]::FromArgb(70, 0, 0, 0)
+$btnFolder.ForeColor = [System.Drawing.Color]::FromArgb(235,210,160)
+$btnFolder.Font = New-Object System.Drawing.Font("Segoe UI", 14, [System.Drawing.FontStyle]::Bold)
+$btnFolder.Cursor = [System.Windows.Forms.Cursors]::Hand
+$form.Controls.Add($btnFolder)
+# ===============================
+
 function Reposition-Carousel {
     $script:tileX = [int](($form.ClientSize.Width  - $tileSize) / 2)
     $script:tileY = [int](($form.ClientSize.Height - $tileSize) / 2) + 70
@@ -318,9 +409,16 @@ function Reposition-Carousel {
     $btnL.Location = New-Object System.Drawing.Point(($script:tileX - 70), ($script:tileY + [int]($tileSize/2) - 25))
     $btnR.Location = New-Object System.Drawing.Point(($script:tileX + $tileSize + 15), ($script:tileY + [int]($tileSize/2) - 25))
 
+    # 📁 bouton dossier (décalé à gauche)
+    $btnFolder.Location = New-Object System.Drawing.Point(
+        ($form.ClientSize.Width - 200),
+        ($form.ClientSize.Height - 80)
+    )
+
     $card.BringToFront()
     $btnL.BringToFront()
     $btnR.BringToFront()
+    $btnFolder.BringToFront()
     $nameLbl.BringToFront()
 }
 
@@ -343,22 +441,18 @@ function Set-CardContent($idx) {
 }
 
 # --------- ANIMATION FLUIDE (corrigée) ---------
-# Plus fluide = pas trop long, pas trop violent, easing des 2 côtés
 $script:animTimer = New-Object System.Windows.Forms.Timer
-$script:animTimer.Interval = 15   # stable, fluide
 $script:animStep = 0
 $script:animDir = 0
 $script:pendingIndex = 0
 $script:phase = 0
 $script:baseX = 0
 
-# réglages anim
-$script:animMaxSteps = 5   # 12-16 = bien
-$script:animOffset   = 3   # slide court (pas un taxi)
+$script:animMaxSteps = 5
+$script:animOffset   = 3
 $script:animTimer.Interval = 3
 
 function Ease-InOut($t) {
-    # t entre 0 et 1
     return (0.5 - ([math]::Cos($t * [math]::PI) / 2))
 }
 
@@ -379,7 +473,6 @@ $script:animTimer.Add_Tick({
     $off = $script:animOffset
 
     if ($script:phase -eq 0) {
-        # PHASE 0 = sort doucement jusqu'à offset
         $script:animStep++
         $t = $script:animStep / $max
         if ($t -gt 1) { $t = 1 }
@@ -396,7 +489,6 @@ $script:animTimer.Add_Tick({
         }
     }
     else {
-        # PHASE 1 = revient doucement de offset -> 0
         $script:animStep++
         $t = $script:animStep / $max
         if ($t -gt 1) { $t = 1 }
@@ -433,6 +525,11 @@ function Next-Game {
 $btnL.Add_Click({ Prev-Game })
 $btnR.Add_Click({ Next-Game })
 
+# 📁 action : ouvre dossier du launcher
+$btnFolder.Add_Click({
+    Start-Process explorer.exe "`"$root`""
+})
+
 $card.Add_Click({ if ($folders.Count -gt 0) { Launch-GameByName $folders[$script:currentIndex].Name } })
 $pic.Add_Click({  if ($folders.Count -gt 0) { Launch-GameByName $folders[$script:currentIndex].Name } })
 $nameLbl.Add_Click({ if ($folders.Count -gt 0) { Launch-GameByName $folders[$script:currentIndex].Name } })
@@ -452,13 +549,17 @@ $form.Add_KeyDown({
     }
 })
 
-$form.Add_Shown({
-    Reposition-Carousel
-    if ($folders.Count -gt 0) { Set-CardContent 0 } else { Set-CardContent 0 }
+# --------- PRELOAD AVANT AFFICHAGE (zéro écran noir) ---------
+Reposition-Carousel
+Set-CardContent 0
 
-    $status.Text = "Jeux detectes: " + $folders.Count
-    $h = [int]$form.ClientSize.Height
-    $status.Location = New-Object System.Drawing.Point(20, ($h - 30))
-})
+$status.Text = "Jeux detectes: " + $folders.Count
+$h2 = [int]$form.ClientSize.Height
+$status.Location = New-Object System.Drawing.Point(20, ($h2 - 30))
+
+$form.Refresh()
+[System.Windows.Forms.Application]::DoEvents()
+$form.Opacity = 1
+# ------------------------------------------------------------
 
 [void]$form.ShowDialog()
